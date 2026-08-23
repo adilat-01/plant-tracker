@@ -26,3 +26,18 @@ export async function uploadPlantImage(
 
   return getPublicImageUrl(path);
 }
+
+export function extractStoragePath(imageUrl: string): string | null {
+  const marker = `/storage/v1/object/public/${BUCKET}/`;
+  const index = imageUrl.indexOf(marker);
+  if (index === -1) return null;
+  return imageUrl.slice(index + marker.length);
+}
+
+export async function deletePlantImage(imageUrl: string): Promise<void> {
+  const path = extractStoragePath(imageUrl);
+  if (!path) return;
+
+  const supabase = await createClient();
+  await supabase.storage.from(BUCKET).remove([path]);
+}

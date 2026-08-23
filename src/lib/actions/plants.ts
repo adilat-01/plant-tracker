@@ -10,7 +10,7 @@ import {
   type LightLevel,
 } from "@/lib/plant-form";
 import { createClient } from "@/lib/supabase/server";
-import { uploadPlantImage } from "@/lib/storage";
+import { uploadPlantImage, deletePlantImage } from "@/lib/storage";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -220,6 +220,47 @@ export async function waterPlant(plantId: string) {
 
   if (error) {
     return { error: "עדכון ההשקיה נכשל" };
+  }
+
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function deletePlant(plantId: string) {
+  const supabase = await createClient();
+  const household = await getUserHousehold();
+
+  if (!household) {
+    return { error: "לא נמצא בית" };
+  }
+
+  const { data: plant } = await supabase
+    .from("plants")
+    .select("id, image_url")
+    .eq("id", plantId)
+    .eq("household_id", household.id)
+    .maybeSingle();
+
+  if (!plant) {
+    return { error: "הצמח לא נמצא" };
+  }
+
+  const { error } = await supabase
+    .from("plants")
+    .delete()
+    .eq("id", plantId)
+    .eq("household_id", household.id);
+
+  if (error) {
+    return { error: "מחיקת הצמח נכשלה" };
+  }
+
+  if (plant.image_url) {
+    try {
+      await deletePlantImage(plant.image_url);
+    } catch {
+      // Plant row deleted — orphaned image is acceptable
+    }
   }
 
   revalidatePath("/dashboard");

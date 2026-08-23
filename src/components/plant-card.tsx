@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useTransition } from "react";
-import { waterPlant } from "@/lib/actions/plants";
+import { deletePlant, waterPlant } from "@/lib/actions/plants";
 import {
   formatLastWatered,
   getLightLevelLabel,
@@ -11,11 +11,21 @@ import { getWateringStatus, type Plant } from "@/lib/plants";
 
 export function PlantCard({ plant }: { plant: Plant }) {
   const [pending, startTransition] = useTransition();
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const watering = getWateringStatus(plant);
 
   function handleWater() {
     startTransition(async () => {
       await waterPlant(plant.id);
+    });
+  }
+
+  function handleDelete() {
+    startTransition(async () => {
+      const result = await deletePlant(plant.id);
+      if (!result.error) {
+        setConfirmDelete(false);
+      }
     });
   }
 
@@ -76,6 +86,38 @@ export function PlantCard({ plant }: { plant: Plant }) {
         >
           {pending ? "מעדכן..." : "השקיתי היום"}
         </button>
+
+        {confirmDelete ? (
+          <div className="space-y-2 rounded-lg border border-red-200 bg-red-50 p-2">
+            <p className="text-xs text-red-800">למחוק את {plant.name_he}?</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={pending}
+                className="flex-1 rounded-lg bg-red-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {pending ? "מוחק..." : "כן, מחקי"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                disabled={pending}
+                className="flex-1 rounded-lg border border-red-200 bg-white px-2 py-1.5 text-xs text-red-800 hover:bg-red-50"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="w-full rounded-lg border border-red-200 px-3 py-2 text-xs text-red-700 hover:bg-red-50"
+          >
+            מחקי צמח
+          </button>
+        )}
       </div>
     </article>
   );
