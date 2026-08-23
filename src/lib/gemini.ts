@@ -8,6 +8,8 @@ export type PlantIdentification = {
   care_tips: string;
 };
 
+const MODELS = ["gemini-2.5-flash", "gemini-3.6-flash"];
+
 const IDENTIFY_PROMPT = `You are a botany expert. Analyze the plant in this image.
 
 Return ONLY valid JSON (no markdown, no extra text) with exactly these fields:
@@ -49,18 +51,32 @@ export async function identifyPlantFromImage(
   mimeType: string
 ): Promise<PlantIdentification> {
   const genAI = new GoogleGenerativeAI(env.geminiApiKey());
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const normalizedMime =
+    mimeType === "image/heic" || mimeType === "image/heif"
+      ? "image/jpeg"
+      : mimeType;
 
-  const result = await model.generateContent([
-    IDENTIFY_PROMPT,
-    {
-      inlineData: {
-        data: imageBuffer.toString("base64"),
-        mimeType,
-      },
-    },
-  ]);
+  let lastError: Error | null = null;
 
-  const text = result.response.text();
-  return parseIdentification(text);
+  for (const modelName of MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent([
+        IDENTIFY_PROMPT,
+        {
+          inlineData: {
+            data: imageBuffer.toString("base64"),
+            mimeType: normalizedMime,
+          },
+        },
+      ]);
+
+      const text = result.response.text();
+      return parseIdentification(text);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+    }
+  }
+
+  throw lastError ?? new Error("Gemini identification failed");
 }

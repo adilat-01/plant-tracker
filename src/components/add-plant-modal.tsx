@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { addPlant } from "@/lib/actions/plants";
+import { compressImageForUpload } from "@/lib/compress-image";
 
 type Room = { id: string; name: string };
 
@@ -15,7 +16,10 @@ export function AddPlantModal({
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [state, action, pending] = useActionState(addPlant, null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [state, action] = useActionState(addPlant, null);
+  const [pending, startTransition] = useTransition();
+  const [localError, setLocalError] = useState<string | null>(null);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -27,9 +31,37 @@ export function AddPlantModal({
 
   useEffect(() => {
     if (state?.success) {
+      formRef.current?.reset();
       onClose();
     }
   }, [state?.success, onClose]);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLocalError(null);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const file = formData.get("image");
+
+    if (!(file instanceof File) || file.size === 0) {
+      setLocalError("נא להעלות תמונה של הצמח");
+      return;
+    }
+
+    try {
+      const compressed = await compressImageForUpload(file);
+      formData.set("image", compressed, compressed.name);
+
+      startTransition(() => {
+        action(formData);
+      });
+    } catch {
+      setLocalError("עיבוד התמונה נכשל. נסי תמונה אחרת.");
+    }
+  }
+
+  const error = localError ?? state?.error;
 
   return (
     <dialog
@@ -37,12 +69,12 @@ export function AddPlantModal({
       onClose={onClose}
       className="w-full max-w-md rounded-2xl border-0 bg-white p-0 shadow-xl backdrop:bg-black/40"
     >
-      <form action={action} className="p-6">
+      <form ref={formRef} onSubmit={handleSubmit} className="p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-bold text-emerald-900">הוסף צמח</h2>
             <p className="mt-1 text-sm text-emerald-700">
-              העלי תמונה — Gemini יזהה וישמור
+              צלמי או העלי תמונה — Gemini יזהה וישמור
             </p>
           </div>
           <button
@@ -54,9 +86,9 @@ export function AddPlantModal({
           </button>
         </div>
 
-        {state?.error ? (
+        {error ? (
           <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-            {state.error}
+            {error}
           </p>
         ) : null}
 
@@ -68,7 +100,7 @@ export function AddPlantModal({
             <input
               name="image"
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+              accept="image/*"
               capture="environment"
               required
               className="block w-full text-sm text-emerald-800 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-emerald-800"

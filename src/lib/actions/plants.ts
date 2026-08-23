@@ -6,14 +6,38 @@ import { getUserHousehold } from "@/lib/household";
 import { createClient } from "@/lib/supabase/server";
 import { uploadPlantImage } from "@/lib/storage";
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
   "image/heic",
   "image/heif",
+  "application/octet-stream",
 ]);
+
+function resolveMimeType(file: File): string {
+  if (file.type && ALLOWED_TYPES.has(file.type) && file.type !== "application/octet-stream") {
+    return file.type;
+  }
+
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  const byExt: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+    heic: "image/jpeg",
+    heif: "image/jpeg",
+  };
+
+  return byExt[ext ?? ""] ?? "image/jpeg";
+}
+
+function isImageFile(file: File): boolean {
+  if (file.type.startsWith("image/")) return true;
+  return /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name);
+}
 
 export async function addPlant(
   _prev: { error?: string } | null,
@@ -34,7 +58,7 @@ export async function addPlant(
     return { error: "התמונה גדולה מדי (מקסימום 5MB)" };
   }
 
-  if (!ALLOWED_TYPES.has(file.type)) {
+  if (!isImageFile(file)) {
     return { error: "סוג קובץ לא נתמך. השתמשי ב-JPG, PNG או WebP" };
   }
 
@@ -65,7 +89,8 @@ export async function addPlant(
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
-    const identification = await identifyPlantFromImage(buffer, file.type);
+    const mimeType = resolveMimeType(file);
+    const identification = await identifyPlantFromImage(buffer, mimeType);
     const imageUrl = await uploadPlantImage(household.id, file);
 
     const { error: insertError } = await supabase.from("plants").insert({
@@ -94,10 +119,14 @@ export async function addPlant(
     }
 
     if (message.toLowerCase().includes("api key")) {
-      return { error: "מפתח Gemini לא תקין. בדקי את GEMINI_API_KEY ב-.env.local" };
+      return { error: "מפתח Gemini לא תקין. בדקי את GEMINI_API_KEY ב-Vercel." };
     }
 
-    return { error: `זיהוי הצמח נכשל: ${message}` };
+    if (message.includes("no longer available") || message.includes("NOT_FOUND")) {
+      return { error: "מודל Gemini לא זמין. נסי שוב בעוד דקה." };
+    }
+
+    return { error: `שגיאה: ${message}` };
   }
 
   revalidatePath("/dashboard");
