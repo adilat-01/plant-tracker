@@ -1,8 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { waterPlant } from "@/lib/actions/plants";
+import {
+  formatLastWatered,
+  getLightLevelLabel,
+} from "@/lib/plant-form";
 import { getWateringStatus, type Plant } from "@/lib/plants";
 
 export function PlantCard({ plant }: { plant: Plant }) {
@@ -36,9 +40,17 @@ export function PlantCard({ plant }: { plant: Plant }) {
       <div className="space-y-2 p-3">
         <h3 className="font-semibold text-emerald-900">{plant.name_he}</h3>
 
+        <p className="text-xs text-emerald-600">
+          {getLightLevelLabel(plant.light_level)}
+        </p>
+
         <p
           className={`text-sm font-medium ${
-            watering.status === "due" ? "text-red-600" : "text-emerald-700"
+            watering.status === "due"
+              ? "text-red-600"
+              : watering.status === "unknown"
+                ? "text-amber-700"
+                : "text-emerald-700"
           }`}
         >
           {watering.label}
@@ -47,7 +59,13 @@ export function PlantCard({ plant }: { plant: Plant }) {
         <p className="text-xs text-emerald-600">
           {watering.status === "due"
             ? "מומלץ להשקות היום"
-            : `עוד ${watering.daysRemaining} ימים להשקיה`}
+            : watering.status === "unknown"
+              ? "מומלץ להשקות ולעדכן"
+              : `עוד ${watering.daysRemaining} ימים להשקיה`}
+        </p>
+
+        <p className="text-xs text-emerald-700">
+          🕐 {formatLastWatered(plant.last_watered_at)}
         </p>
 
         <button

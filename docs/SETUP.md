@@ -11,7 +11,9 @@
      - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (סודי! רק בשרת)
 4. **Authentication → Providers → Email** — ודאי ש-Email מופעל
 5. **SQL Editor** — הדביקי והריצי את `supabase/schema.sql`
-6. **SQL Editor** — הריצי גם את `supabase/patch-storage.sql` (אחסון תמונות צמחים)
+6. **SQL Editor** — הריצי גם:
+   - `supabase/patch-storage.sql` (תמונות)
+   - `supabase/patch-plant-light.sql` (רמת אור)
 
 ## שלב 2: Gemini API
 

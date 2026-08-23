@@ -6,21 +6,30 @@ export type Plant = {
   watering_interval_days: number;
   light_notes: string | null;
   care_tips: string | null;
+  light_level: string | null;
   image_url: string | null;
   last_watered_at: string | null;
   added_at: string;
 };
 
 export type WateringStatus = {
-  status: "due" | "ok";
+  status: "due" | "ok" | "unknown";
   label: string;
   daysRemaining: number;
 };
 
 export function getWateringStatus(plant: Plant): WateringStatus {
-  const reference = plant.last_watered_at ?? plant.added_at;
+  if (!plant.last_watered_at) {
+    return {
+      status: "unknown",
+      label: "לא ידוע מתי הושקה 💧",
+      daysRemaining: 0,
+    };
+  }
+
   const daysSince = Math.floor(
-    (Date.now() - new Date(reference).getTime()) / (1000 * 60 * 60 * 24)
+    (Date.now() - new Date(plant.last_watered_at).getTime()) /
+      (1000 * 60 * 60 * 24)
   );
   const daysRemaining = plant.watering_interval_days - daysSince;
 

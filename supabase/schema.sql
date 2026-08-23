@@ -38,6 +38,7 @@ create table if not exists public.plants (
   watering_interval_days int not null,
   light_notes text,
   care_tips text,
+  light_level text,
   image_url text,
   last_watered_at timestamptz,
   added_at timestamptz not null default now(),

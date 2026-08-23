@@ -1,8 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { env } from "@/lib/env";
+import { getLightLevelLabel, type LightLevel } from "@/lib/plant-form";
 
 export type PlantIdentification = {
   name_he: string;
+  confirmation_question: string | null;
   watering_interval_days: number;
   light_notes: string;
   care_tips: string;
@@ -10,17 +12,28 @@ export type PlantIdentification = {
 
 const MODELS = ["gemini-2.5-flash", "gemini-3.6-flash"];
 
-const IDENTIFY_PROMPT = `You are a botany expert. Analyze the plant in this image.
+function buildPrompt(userGuessName: string | null, lightLevel: LightLevel): string {
+  const lightLabel = getLightLevelLabel(lightLevel);
 
-Return ONLY valid JSON (no markdown, no extra text) with exactly these fields:
+  return `You are a botany expert helping manage houseplants in Israel.
+
+Analyze the plant in this image.
+
+Context from the user:
+- User's name guess (may be wrong or empty): ${userGuessName ?? "not provided"}
+- Light level where the plant is placed: ${lightLabel}
+
+Return ONLY valid JSON (no markdown) with exactly these fields:
 {
   "name_he": "accurate Hebrew common name of the plant",
-  "watering_interval_days": recommended watering frequency as a positive integer (days between waterings),
-  "light_notes": "Hebrew description of light requirements",
-  "care_tips": "Hebrew care tips (1-2 sentences)"
+  "confirmation_question": "If the user provided a name guess that differs from your identification, write a short Hebrew question like 'האם התכוונת לפוטוס מנומר?' — otherwise null",
+  "watering_interval_days": recommended days between waterings as a positive integer, adjusted for the stated light level and typical Israeli home conditions,
+  "light_notes": "Hebrew: how the chosen light level affects this specific plant",
+  "care_tips": "Hebrew care tips (1-2 sentences) tailored to the light level"
 }
 
-If you cannot identify the plant, use your best guess based on visible features.`;
+If you cannot identify the plant confidently, give your best guess based on visible features.`;
+}
 
 function parseIdentification(text: string): PlantIdentification {
   const cleaned = text
@@ -37,6 +50,9 @@ function parseIdentification(text: string): PlantIdentification {
 
   return {
     name_he: String(parsed.name_he),
+    confirmation_question: parsed.confirmation_question
+      ? String(parsed.confirmation_question)
+      : null,
     watering_interval_days: Math.max(
       1,
       Math.round(Number(parsed.watering_interval_days))
@@ -48,7 +64,11 @@ function parseIdentification(text: string): PlantIdentification {
 
 export async function identifyPlantFromImage(
   imageBuffer: Buffer,
-  mimeType: string
+  mimeType: string,
+  options: {
+    userGuessName?: string | null;
+    lightLevel: LightLevel;
+  }
 ): Promise<PlantIdentification> {
   const genAI = new GoogleGenerativeAI(env.geminiApiKey());
   const normalizedMime =
@@ -56,13 +76,18 @@ export async function identifyPlantFromImage(
       ? "image/jpeg"
       : mimeType;
 
+  const prompt = buildPrompt(
+    options.userGuessName?.trim() || null,
+    options.lightLevel
+  );
+
   let lastError: Error | null = null;
 
   for (const modelName of MODELS) {
     try {
       const model = genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent([
-        IDENTIFY_PROMPT,
+        prompt,
         {
           inlineData: {
             data: imageBuffer.toString("base64"),
