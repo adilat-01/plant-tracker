@@ -11,6 +11,7 @@
      - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (סודי! רק בשרת)
 4. **Authentication → Providers → Email** — ודאי ש-Email מופעל
 5. **SQL Editor** — הדביקי והריצי את `supabase/schema.sql`
+6. **SQL Editor** — הריצי גם את `supabase/patch-storage.sql` (אחסון תמונות צמחים)
 
 ## שלב 2: Gemini API
 
@@ -33,8 +34,10 @@ Copy-Item .env.example .env.local
 
 ```powershell
 npm install
-npm run dev
+npm.cmd run dev
 ```
+
+> **Windows:** אם מופיעה שגיאת `fetch failed`, השתמשי ב-`npm.cmd run dev` (לא `npm run dev`).
 
 פתחי [http://localhost:3000](http://localhost:3000)
 

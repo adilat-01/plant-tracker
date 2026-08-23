@@ -69,6 +69,10 @@ create policy "Members can view their households"
   on public.households for select
   using (public.is_household_member(id));
 
+create policy "Creators can view households they created"
+  on public.households for select
+  using (auth.uid() = created_by);
+
 create policy "Authenticated users can create households"
   on public.households for insert
   with check (auth.uid() = created_by);

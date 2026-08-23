@@ -44,6 +44,9 @@ yarn-error.log*
 credentials.json
 service-account*.json
 
+# local secrets & personal notes — never commit
+/personal/
+
 # vercel
 .vercel
 
