@@ -1,29 +1,50 @@
-# Plant Tracker
+# Plant Tracker 🌿
 
-Live: [plant-tracker-dun.vercel.app](https://plant-tracker-dun.vercel.app)
+**Live:** [plant-tracker-dun.vercel.app](https://plant-tracker-dun.vercel.app)
 
-Personal plant-care app: add plants from a photo, share a household, and get watering reminders.
+A personal (and shared) plant-care app for home plants: photograph a plant, let AI identify it, organize plants by room, and know when each one needs water.
 
-## Stack
+## Why it exists
+
+Keeping plants alive usually means scattered notes, guesswork about watering, and “wait, when did I last water this?”  
+Plant Tracker turns that into one simple dashboard: your plants, their rooms, and a clear watering status — including a household you can share with a partner.
+
+## What you can do
+
+- **Add a plant from a photo** — upload a picture; Gemini suggests the plant name and care defaults (you confirm before saving)
+- **Organize by room** — living room, garden, entrance, etc.
+- **See watering status at a glance** — who needs water now vs. who’s fine
+- **Tap “I watered today”** — resets the timer for everyone in the household
+- **Share a household** — create a home, invite with a code, manage the same plants together
+
+## How it works (user flow)
+
+1. **Sign up / log in**
+2. **Create a household** (or join with an invite code)
+3. **Add a plant** → photo → AI identification → confirm name / light / watering → choose a room → save
+4. **Dashboard** shows plants by room with watering status
+5. After watering in real life → **“I watered today”** updates the schedule for the whole household
+
+## Product notes
+
+- Built as a personal product for day-to-day use (not a demo-only toy)
+- Care tips and watering intervals come from the AI identification step, then stay editable
+- Email watering alerts are planned as a later enhancement
+
+---
+
+## For developers
+
+### Stack
 
 | Layer | Tech |
 |-------|------|
 | App | Next.js 16, React, Tailwind |
 | Auth + DB + Storage | Supabase |
-| AI | Gemini (server-side plant ID) |
+| AI | Gemini (server-side only) |
 | Deploy | Vercel |
 
-## Repo layout
-
-```
-├── src/                 # App router, components, server actions
-├── supabase/            # SQL schema and patches
-├── docs/                # SETUP.md, PRD, deploy notes
-├── scripts/check-secrets.mjs
-└── .env.example
-```
-
-## Quick start
+### Quick start
 
 ```bash
 copy .env.example .env.local
@@ -31,21 +52,12 @@ npm install
 npm run dev
 ```
 
-Fill `.env.local` using [docs/SETUP.md](docs/SETUP.md).
+Fill `.env.local` using [docs/SETUP.md](docs/SETUP.md).  
+Full product spec: [docs/PRD.txt](docs/PRD.txt)
 
-## Environment variables
+### Security
 
-| Variable | Client? | Purpose |
-|----------|---------|---------|
-| `NEXT_PUBLIC_SUPABASE_URL` | yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | Public anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | **no** | Server only |
-| `GEMINI_API_KEY` | **no** | Server only — never `NEXT_PUBLIC_` |
-
-## Security
-
-- Keep this repo **private**
-- Run `npm run check-secrets` before pushing
+- Repo is **private**
 - Never commit `.env.local`
-
-Product spec: [docs/PRD.txt](docs/PRD.txt)
+- `GEMINI_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` stay server-side (never `NEXT_PUBLIC_`)
+- Run `npm run check-secrets` before pushing
