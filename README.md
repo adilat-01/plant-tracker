@@ -1,29 +1,51 @@
-# Plant Manager 🌿
+# Plant Tracker
 
-מערכת אישית לניהול ומעקב אחר צמחי בית — עם זיהוי AI, בתים משותפים, והתראות השקיה.
+Live: [plant-tracker-dun.vercel.app](https://plant-tracker-dun.vercel.app)
 
-## Tech Stack
+Personal plant-care app: add plants from a photo, share a household, and get watering reminders.
 
-- **Frontend:** Next.js 16 + React + Tailwind
-- **Auth & DB:** Supabase
-- **AI:** Gemini API (זיהוי צמחים מתמונה)
-- **Deploy:** Vercel
-- **Repo:** GitHub (private)
+## Stack
 
-## Quick Start
+| Layer | Tech |
+|-------|------|
+| App | Next.js 16, React, Tailwind |
+| Auth + DB + Storage | Supabase |
+| AI | Gemini (server-side plant ID) |
+| Deploy | Vercel |
+
+## Repo layout
+
+```
+├── src/                 # App router, components, server actions
+├── supabase/            # SQL schema and patches
+├── docs/                # SETUP.md, PRD, deploy notes
+├── scripts/check-secrets.mjs
+└── .env.example
+```
+
+## Quick start
 
 ```bash
-cp .env.example .env.local   # Windows: Copy-Item .env.example .env.local
-# Fill in keys — see docs/SETUP.md
+copy .env.example .env.local
 npm install
 npm run dev
 ```
 
+Fill `.env.local` using [docs/SETUP.md](docs/SETUP.md).
+
+## Environment variables
+
+| Variable | Client? | Purpose |
+|----------|---------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | Public anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | **no** | Server only |
+| `GEMINI_API_KEY` | **no** | Server only — never `NEXT_PUBLIC_` |
+
 ## Security
 
-- Never commit `.env.local` or real API keys
+- Keep this repo **private**
 - Run `npm run check-secrets` before pushing
-- `GEMINI_API_KEY` is server-side only (never `NEXT_PUBLIC_`)
+- Never commit `.env.local`
 
-Full setup guide: [docs/SETUP.md](docs/SETUP.md)  
 Product spec: [docs/PRD.txt](docs/PRD.txt)
