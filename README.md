@@ -57,7 +57,6 @@ Full product spec: [docs/PRD.txt](docs/PRD.txt)
 
 ### Security
 
-- Repo is **private**
 - Never commit `.env.local`
 - `GEMINI_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` stay server-side (never `NEXT_PUBLIC_`)
 - Run `npm run check-secrets` before pushing
