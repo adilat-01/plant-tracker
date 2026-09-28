@@ -1,3 +1,10 @@
+import {
+  calendarDaysBetween,
+  formatIsraelDateTime,
+  israelDateKeyToIso,
+  toIsraelDateKey,
+} from "@/lib/date-il";
+
 export const LIGHT_LEVELS = [
   { value: "direct_sun", label: "שמש ישירה ☀️" },
   { value: "filtered_sun", label: "שמש מסוננת 🌤️" },
@@ -16,37 +23,29 @@ export function getLightLevelLabel(value: string | null): string {
 export function resolveLastWateredAt(
   choice: LastWateredChoice
 ): string | null {
-  const now = new Date();
+  if (choice === "unknown") return null;
 
+  const todayKey = toIsraelDateKey();
   if (choice === "today") {
-    return now.toISOString();
+    return new Date().toISOString();
   }
 
-  if (choice === "yesterday") {
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString();
-  }
-
-  return null;
+  // yesterday in Israel calendar
+  const [y, m, d] = todayKey.split("-").map(Number);
+  const yesterday = new Date(Date.UTC(y, m - 1, d));
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const yesterdayKey = yesterday.toISOString().slice(0, 10);
+  return israelDateKeyToIso(yesterdayKey, 12);
 }
 
 export function formatLastWatered(iso: string | null): string {
   if (!iso) return "לא ידוע מתי הושקה";
 
-  const date = new Date(iso);
-  const now = new Date();
-  const diffDays = Math.floor(
-    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const { dateStr, timeStr, daysAgo } = formatIsraelDateTime(iso);
 
-  const time = date.toLocaleTimeString("he-IL", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const dateStr = date.toLocaleDateString("he-IL");
-
-  if (diffDays === 0) return `היום בשעה ${time}`;
-  if (diffDays === 1) return `אתמול בשעה ${time}`;
-  return `${dateStr} בשעה ${time}`;
+  if (daysAgo === 0) return `היום בשעה ${timeStr}`;
+  if (daysAgo === 1) return `אתמול בשעה ${timeStr}`;
+  return `${dateStr} בשעה ${timeStr}`;
 }
+
+export { calendarDaysBetween };

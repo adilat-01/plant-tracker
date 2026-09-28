@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deletePlant, waterPlant } from "@/lib/actions/plants";
 import {
@@ -10,22 +11,34 @@ import {
 import { getWateringStatus, type Plant } from "@/lib/plants";
 
 export function PlantCard({ plant }: { plant: Plant }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const watering = getWateringStatus(plant);
 
-  function handleWater() {
+  function handleWater(when: "today" | "yesterday") {
+    setError(null);
     startTransition(async () => {
-      await waterPlant(plant.id);
+      const result = await waterPlant(plant.id, when);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
     });
   }
 
   function handleDelete() {
+    setError(null);
     startTransition(async () => {
       const result = await deletePlant(plant.id);
-      if (!result.error) {
-        setConfirmDelete(false);
+      if (result.error) {
+        setError(result.error);
+        return;
       }
+      setConfirmDelete(false);
+      router.refresh();
     });
   }
 
@@ -78,14 +91,30 @@ export function PlantCard({ plant }: { plant: Plant }) {
           🕐 {formatLastWatered(plant.last_watered_at)}
         </p>
 
-        <button
-          type="button"
-          onClick={handleWater}
-          disabled={pending}
-          className="w-full rounded-lg bg-emerald-700 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
-        >
-          {pending ? "מעדכן..." : "השקיתי היום"}
-        </button>
+        {error ? (
+          <p className="rounded bg-red-50 px-2 py-1 text-xs text-red-700">
+            {error}
+          </p>
+        ) : null}
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => handleWater("today")}
+            disabled={pending}
+            className="flex-1 rounded-lg bg-emerald-700 px-2 py-2 text-xs font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
+          >
+            {pending ? "..." : "השקיתי היום"}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleWater("yesterday")}
+            disabled={pending}
+            className="flex-1 rounded-lg border border-emerald-300 bg-white px-2 py-2 text-xs font-medium text-emerald-800 hover:bg-emerald-50 disabled:opacity-60"
+          >
+            אתמול
+          </button>
+        </div>
 
         {confirmDelete ? (
           <div className="space-y-2 rounded-lg border border-red-200 bg-red-50 p-2">

@@ -204,7 +204,10 @@ export async function savePlant(preview: PlantPreview) {
   return { success: true };
 }
 
-export async function waterPlant(plantId: string) {
+export async function waterPlant(
+  plantId: string,
+  when: "today" | "yesterday" = "today"
+) {
   const supabase = await createClient();
   const household = await getUserHousehold();
 
@@ -212,18 +215,71 @@ export async function waterPlant(plantId: string) {
     return { error: "לא נמצא בית" };
   }
 
-  const { error } = await supabase
+  const lastWateredAt =
+    when === "yesterday"
+      ? resolveLastWateredAt("yesterday")
+      : new Date().toISOString();
+
+  if (!lastWateredAt) {
+    return { error: "תאריך השקיה לא תקין" };
+  }
+
+  const { data, error } = await supabase
     .from("plants")
-    .update({ last_watered_at: new Date().toISOString() })
+    .update({ last_watered_at: lastWateredAt })
     .eq("id", plantId)
-    .eq("household_id", household.id);
+    .eq("household_id", household.id)
+    .select("id, last_watered_at")
+    .maybeSingle();
 
   if (error) {
-    return { error: "עדכון ההשקיה נכשל" };
+    return { error: `עדכון ההשקיה נכשל: ${error.message}` };
+  }
+
+  if (!data) {
+    return {
+      error:
+        "עדכון ההשקיה נחסם (הרשאות). הריצי את supabase/patch-plants-update.sql ב-Supabase.",
+    };
   }
 
   revalidatePath("/dashboard");
-  return { success: true };
+  return { success: true, last_watered_at: data.last_watered_at as string };
+}
+
+export async function waterAllPlants(when: "today" | "yesterday" = "today") {
+  const supabase = await createClient();
+  const household = await getUserHousehold();
+
+  if (!household) {
+    return { error: "לא נמצא בית" };
+  }
+
+  const lastWateredAt =
+    when === "yesterday"
+      ? resolveLastWateredAt("yesterday")
+      : new Date().toISOString();
+
+  if (!lastWateredAt) {
+    return { error: "תאריך השקיה לא תקין" };
+  }
+
+  const { data, error } = await supabase
+    .from("plants")
+    .update({ last_watered_at: lastWateredAt })
+    .eq("household_id", household.id)
+    .select("id");
+
+  if (error) {
+    return { error: `עדכון ההשקיה נכשל: ${error.message}` };
+  }
+
+  if (!data || data.length === 0) {
+    return { error: "לא עודכנו צמחים — בדקי הרשאות עדכון ב-Supabase" };
+  }
+
+  revalidatePath("/dashboard");
+  return { success: true, count: data.length };
 }
 
 export async function deletePlant(plantId: string) {

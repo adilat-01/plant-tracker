@@ -101,6 +101,15 @@ create policy "Members can view plants"
   on public.plants for select
   using (public.is_household_member(household_id));
 
-create policy "Members can manage plants"
-  on public.plants for all
+create policy "Members can insert plants"
+  on public.plants for insert
+  with check (public.is_household_member(household_id));
+
+create policy "Members can update plants"
+  on public.plants for update
+  using (public.is_household_member(household_id))
+  with check (public.is_household_member(household_id));
+
+create policy "Members can delete plants"
+  on public.plants for delete
   using (public.is_household_member(household_id));

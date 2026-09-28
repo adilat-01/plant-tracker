@@ -1,3 +1,5 @@
+import { calendarDaysBetween } from "@/lib/date-il";
+
 export type Plant = {
   id: string;
   household_id: string;
@@ -27,10 +29,7 @@ export function getWateringStatus(plant: Plant): WateringStatus {
     };
   }
 
-  const daysSince = Math.floor(
-    (Date.now() - new Date(plant.last_watered_at).getTime()) /
-      (1000 * 60 * 60 * 24)
-  );
+  const daysSince = calendarDaysBetween(plant.last_watered_at);
   const daysRemaining = plant.watering_interval_days - daysSince;
 
   if (daysRemaining <= 0) {
